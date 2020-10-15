@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"bufio"
@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
+	// "time"
 )
 
 type PlaceHolder struct{}
@@ -166,8 +166,8 @@ func (parser *LogSig) GetLogContent(dataFrame map[string][]string) [][]string {
 func (parser *LogSig) LoadLog() ([]string, map[string][]string) {
 	headers, regex := GenerateLogFormat(parser.logFormat)
 	logFilePath := path.Join(parser.inputDir, parser.logFile)
-	fmt.Println("Try to open logFile:", logFilePath)
-	fmt.Println(regex, headers)
+	// fmt.Println("Try to open logFile:", logFilePath)
+	// fmt.Println(regex, headers)
 	dataFrame := LogToDataFrame(logFilePath, regex, headers, parser.logFormat)
 	return headers, dataFrame
 }
@@ -386,7 +386,7 @@ func (parser *LogSig) WriteResultToFile(headers []string, wordSeqs [][]string, c
 }
 
 func (parser *LogSig) Parse() {
-	startTime := time.Now()
+	// startTime := time.Now()
 	headers, dataFrame := parser.LoadLog()
 	wordSeqs := parser.GetLogContent(dataFrame)
 	// fmt.Println(wordSeqs)
@@ -395,23 +395,10 @@ func (parser *LogSig) Parse() {
 	// fmt.Println(clusterRecord)
 	patterns := parser.PatternExtract(clusterRecord, wordSeqs, clusters)
 	// fmt.Println(len(clusters))
-	for _, logId := range patterns {
-		fmt.Println(wordSeqs[logId])
-	}
+	// for _, logId := range patterns {
+	// 	fmt.Println(wordSeqs[logId])
+	// }
 	parser.WriteResultToFile(headers, wordSeqs, clusters, patterns, dataFrame, clusterRecord)
-	endTime := time.Now()
-	fmt.Println("Parsing Done. Time taken: ", endTime.Sub(startTime))
-}
-
-func main() {
-	// TODO:
-	var parser LogSig
-	inputDir := "../logs/HDFS/"
-	outputDir := "LogSig_result/"
-	logFile := "HDFS_2k.log"
-	logFormat := "<Date> <Time> <Pid> <Level> <Component>: <Content>"
-	regexList := []string{}
-	groupNum := 14
-	parser.Init(inputDir, outputDir, logFile, logFormat, regexList, groupNum)
-	parser.Parse()
+	// endTime := time.Now()
+	// fmt.Println("Parsing Done. Time taken: ", endTime.Sub(startTime))
 }
