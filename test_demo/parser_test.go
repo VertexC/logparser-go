@@ -5,21 +5,20 @@ import (
 	"testing"
 )
 
-func BenchmarkLogSig(b *testing.B) {
+func TestLogSig(t *testing.T) {
 	inputDir := "../logs/HDFS/"
 	outputDir := "LogSig_result/"
 	logFile := "HDFS_2k.log"
 	logFormat := "<Date> <Time> <Pid> <Level> <Component>: <Content>"
 	regexList := []string{}
 	groupNum := 14
-	for i := 0; i < b.N; i++ {
-		var model parser.LogSig
-		model.Init(inputDir, outputDir, logFile, logFormat, regexList, groupNum)
-		model.Parse()
-	}
+
+	var model parser.LogSig
+	model.Init(inputDir, outputDir, logFile, logFormat, regexList, groupNum)
+	model.Parse()
 }
 
-func BenchmarkDrain(b *testing.B) {
+func TestDrain(t *testing.T) {
 	inputDir := "../logs/HDFS/"
 	outputDir := "Drain_result/"
 	logFile := "HDFS_2k.log"
@@ -34,9 +33,8 @@ func BenchmarkDrain(b *testing.B) {
 	}
 	similarityThreshold := float32(0.5)
 	depth := 4
-	for i := 0; i < b.N; i++ {
-		var model parser.Drain
-		model.Init(inputDir, outputDir, logFile, logFormat, regexList, similarityThreshold, depth)
-		model.Parse()
-	}
+
+	var model parser.Drain
+	model.Init(inputDir, outputDir, logFile, logFormat, regexList, similarityThreshold, depth)
+	model.Parse()
 }
