@@ -197,7 +197,7 @@ func (model *Drain) Parse() {
 	for clusterId, cluster := range model.clusters {
 		patterns[clusterId] = strings.Join(cluster.template, " ")
 		for _, logId := range cluster.logIds {
-			clusterSize[logId] = clusterId
+			clusterRecord[logId] = clusterId
 		}
 		clusterSize[clusterId] = len(cluster.logIds)
 	}
