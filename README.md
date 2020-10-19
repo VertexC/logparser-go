@@ -3,6 +3,8 @@ This project is originated from [logpari/logparser](https://github.com/logpai/lo
 
 The motivation of this project is to re-implemented algorithm in golang for run-time efficiency.
 
+## Log Dataset
+All datasets under `logs` are from [logpari/logparser](https://github.com/logpai/logparser).
 
 ## Benchmark
 ### Demo
