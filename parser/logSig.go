@@ -3,9 +3,8 @@ package parser
 import (
 	"math"
 	"math/rand"
-	"strconv"
-	"strings"
 	// "time"
+	"strings"
 )
 
 type WordPair struct {
@@ -19,7 +18,7 @@ type LogSig struct {
 }
 
 func (model *LogSig) Init(inputDir string, outputDir string, logFile string, logFormat string, regexList []string, clusterNum int) {
-	model.parser.Init(inputDir, outputDir, logFile, logFormat, regexList, clusterNum)
+	model.parser.Init(inputDir, outputDir, logFile, logFormat, regexList)
 	model.clusterNum = clusterNum
 }
 
@@ -41,16 +40,18 @@ func potentialDelta(currentCluster int, newCluster int, logId int, wordPairs map
 	pairRecord map[int]map[WordPair]map[int]struct{}, clusters map[int]map[int]struct{}) float64 {
 
 	var delta float64 = 0.0
+	currentClusterLength := len(clusters[currentCluster])
 	for _, pair := range wordPairs[logId] {
+		newRecord := 1
 		if _, ok := pairRecord[newCluster][pair]; ok {
-			newClusterLength := len(clusters[newCluster]) + 1 // +1 in case the empty cluster
-			currentClusterLength := len(clusters[currentCluster])
-			delta += math.Pow(float64(len(pairRecord[newCluster][pair])/newClusterLength), 2) -
-				math.Pow(float64(len(pairRecord[currentCluster][pair])/currentClusterLength), 2)
-		} else {
-			delta -= math.Pow(float64(len(pairRecord[currentCluster][pair])), 2)
+			newRecord += len(pairRecord[newCluster][pair])
 		}
+		newClusterLength := len(clusters[newCluster]) + 1 // +1 in case the empty cluster
+		pNew := float64(newRecord) / float64(newClusterLength)
+		pCurrent := float64(len(pairRecord[currentCluster][pair])) / float64(currentClusterLength)
+		delta += math.Pow(pNew, 2) - math.Pow(pCurrent, 2)
 	}
+	// omit factor 3 here
 	return delta
 }
 
@@ -60,6 +61,7 @@ func (model *LogSig) findClusterWithMaxPotential(currentCluster int, logId int, 
 	optimalCluster := currentCluster
 	for newCluster := 0; newCluster < model.clusterNum; newCluster++ {
 		delta := potentialDelta(currentCluster, newCluster, logId, wordPairs, pairRecord, clusters)
+
 		if delta > maxDelta {
 			optimalCluster = newCluster
 			maxDelta = delta
@@ -87,7 +89,7 @@ func (model *LogSig) LogCluster(wordPairs map[int][]WordPair) (map[int]int, map[
 			if _, ok := pairRecord[clusterId][pair]; ok {
 				pairRecord[clusterId][pair][logId] = struct{}{}
 			} else {
-				pairRecord[clusterId][pair] = map[int]struct{}{logId: struct{}{}}
+				pairRecord[clusterId][pair] = map[int]struct{}{logId: {}}
 			}
 		}
 	}
@@ -96,17 +98,18 @@ func (model *LogSig) LogCluster(wordPairs map[int][]WordPair) (map[int]int, map[
 		if _, ok := clusters[clusterId]; ok {
 			clusters[clusterId][logId] = struct{}{}
 		} else {
-			clusters[clusterId] = map[int]struct{}{logId: struct{}{}}
+			clusters[clusterId] = map[int]struct{}{logId: {}}
 		}
 	}
 	// fmt.Println(clusterRecord)
 	// local search
 	changed := true
+	rounds := 0
 	for changed {
 		changed = false
 		for logId, pairs := range wordPairs {
 			currentCluster := clusterRecord[logId]
-			// search the new cluster that wold maximum the potential
+			// search the new cluster that word maximum the potential
 			alterCluster := model.findClusterWithMaxPotential(currentCluster, logId, wordPairs, pairRecord, clusters)
 			if alterCluster == currentCluster {
 				continue
@@ -117,7 +120,7 @@ func (model *LogSig) LogCluster(wordPairs map[int][]WordPair) (map[int]int, map[
 				if _, ok := pairRecord[alterCluster][pair]; ok {
 					pairRecord[alterCluster][pair][logId] = struct{}{}
 				} else {
-					pairRecord[alterCluster][pair] = map[int]struct{}{logId: struct{}{}}
+					pairRecord[alterCluster][pair] = map[int]struct{}{logId: {}}
 				}
 				delete(pairRecord[currentCluster][pair], logId)
 			}
@@ -126,107 +129,68 @@ func (model *LogSig) LogCluster(wordPairs map[int][]WordPair) (map[int]int, map[
 			clusters[alterCluster][logId] = struct{}{}
 			changed = true
 		}
+		rounds += 1
 	}
 	// fmt.Println("ClusterRecord", clusterRecord)
 	return clusterRecord, clusters
 }
 
-func (model *LogSig) PatternExtract(clusterRecord map[int]int, wordSeqs [][]string, clusters map[int]map[int]struct{}) map[int]int {
+func (model *LogSig) PatternExtract(clusterRecord map[int]int, wordSeqs [][]string, clusters map[int]map[int]struct{}) map[int]string {
 	// group cluster by clusterId
-	patterns := map[int]int{}
+	patterns := map[int]string{}
 	for clusterId, logIds := range clusters {
 		wordCount := map[string]int{}
 		candidateWords := map[string]struct{}{}
 		// calcuate word freqency for each group
 		// select candidates words with frequency more than half of number of logs
-		for logId, _ := range logIds {
+		for logId := range logIds {
 			for _, word := range wordSeqs[logId] {
 				if _, ok := wordCount[word]; ok {
 					wordCount[word] += 1
 				} else {
 					wordCount[word] = 1
 				}
-				if wordCount[word] >= len(logIds)/2 {
+				if float32(wordCount[word]) >= float32(len(logIds))/2.0 {
 					candidateWords[word] = struct{}{}
 				}
 			}
 		}
-		// choose the log with most candidate words as pattern
-		patternId := 0
-		maxMatches := 0
-		for logId, _ := range logIds {
-			matches := 0
+		// scan each log in the cluster
+		// extract candidate word in that log
+		// for a candidate pattern
+		// select the candidate pattern with the most occurence
+		maxOccurence := 0
+		pattern := ""
+		occurenceRecord := map[string]int{}
+		for logId := range logIds {
+			// construct candidate pattern
+			candidatePatternSeq := []string{}
 			for _, word := range wordSeqs[logId] {
 				if _, ok := candidateWords[word]; ok {
-					matches += 1
+					candidatePatternSeq = append(candidatePatternSeq, word)
 				}
 			}
-			if matches > maxMatches {
-				maxMatches = matches
-				patternId = logId
+			candidatePattern := strings.Join(candidatePatternSeq, " ")
+			if _, ok := occurenceRecord[candidatePattern]; ok {
+				occurenceRecord[candidatePattern] += 1
+			} else {
+				occurenceRecord[candidatePattern] = 1
+			}
+			if occurenceRecord[candidatePattern] > maxOccurence {
+				maxOccurence = occurenceRecord[candidatePattern]
+				pattern = candidatePattern
 			}
 		}
-		patterns[clusterId] = patternId
+		patterns[clusterId] = pattern
 	}
 	return patterns
 }
 
-func (model *LogSig) WriteResultToFile(headers []string, wordSeqs [][]string, clusters map[int]map[int]struct{},
-	patterns map[int]int, dataFrame map[string][]string, clusterRecord map[int]int) {
-
-	// write log templates
-	logTemplates := [][]string{[]string{"EventId", "EventTemplate"}}
-	// iterate based on cluster index to keep order
-	for i := 0; i < len(patterns); i++ {
-		logId := patterns[i]
-		patternSeq := wordSeqs[logId]
-		pattern := strings.Join(patternSeq[:], " ")
-		eventId := "Event" + strconv.Itoa(i+1)
-		logTemplates = append(logTemplates, []string{eventId, pattern})
-	}
-
-	ExportCsvFile(model.parser.outputDir, model.parser.logFile+"_templates.csv", logTemplates)
-	// write log structured
-	logStructured := make([][]string, len(wordSeqs))
-	for i, _ := range logStructured {
-		lineId := "LineId" + strconv.Itoa(i+1)
-		logStructured[i] = []string{lineId}
-	}
-	for _, header := range headers {
-		records := dataFrame[header]
-		// fmt.Println(header)
-		for j, record := range records {
-			logStructured[j] = append(logStructured[j], record)
-		}
-		for j, _ := range records {
-			clusterId := clusterRecord[j]
-			template := logTemplates[clusterId+1] // +1 here due to header in logTemplates
-			eventId := template[0]
-			pattern := template[1]
-			logStructured[j] = append(logStructured[j], []string{eventId, pattern}...)
-			// fmt.Println(logStructured[j])
-		}
-	}
-	headers = append([]string{"LineId"}, headers...)
-	headers = append(headers, []string{"EventId", "EventTemplate"}...)
-	logStructured = append([][]string{headers}, logStructured...)
-	ExportCsvFile(model.parser.outputDir, model.parser.logFile+"_structured.csv", logStructured)
-}
-
 func (model *LogSig) Parse() {
-	// startTime := time.Now()
 	headers, dataFrame := model.parser.LoadLog()
 	wordSeqs := model.parser.GetLogContent(dataFrame)
-	// fmt.Println(wordSeqs)
 	wordPairs := WordSeqToPairs(wordSeqs)
 	clusterRecord, clusters := model.LogCluster(wordPairs)
-	// fmt.Println(clusterRecord)
 	patterns := model.PatternExtract(clusterRecord, wordSeqs, clusters)
-	// fmt.Println(len(clusters))
-	// for _, logId := range patterns {
-	// 	fmt.Println(wordSeqs[logId])
-	// }
-	model.WriteResultToFile(headers, wordSeqs, clusters, patterns, dataFrame, clusterRecord)
-	// endTime := time.Now()
-	// fmt.Println("Parsing Done. Time taken: ", endTime.Sub(startTime))
+	model.parser.WriteResultToFile(headers, dataFrame, wordSeqs, patterns, clusterRecord, false)
 }
