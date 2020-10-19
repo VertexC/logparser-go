@@ -64,15 +64,16 @@ func ExtractParams(content string, pattern string) []string {
 }
 
 func (parser *Parser) WriteResultToFile(headers []string, dataFrame map[string][]string, wordSeqs [][]string,
-	patterns map[int]string, clusterRecord map[int]int, setParameter bool) {
+	patterns map[int]string, clusterRecord map[int]int, clusterSize map[int]int, setParameter bool) {
 
 	// write log templates
-	logTemplates := [][]string{{"EventId", "EventTemplate"}}
+	logTemplates := [][]string{{"EventId", "EventTemplate", "Occurrences"}}
 	// iterate based on cluster index to keep order
 	for i := 0; i < len(patterns); i++ {
 		pattern := patterns[i]
 		eventId := "Event" + strconv.Itoa(i+1)
-		logTemplates = append(logTemplates, []string{eventId, pattern})
+		occurrence := strconv.Itoa(clusterSize[i])
+		logTemplates = append(logTemplates, []string{eventId, pattern, occurrence})
 	}
 
 	ExportCsvFile(parser.outputDir, parser.logFile+"_templates.csv", logTemplates)

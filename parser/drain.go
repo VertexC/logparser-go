@@ -193,13 +193,15 @@ func (model *Drain) Parse() {
 	// model.root.PrintTree(0)
 	patterns := map[int]string{}
 	clusterRecord := map[int]int{}
+	clusterSize := map[int]int{}
 	for clusterId, cluster := range model.clusters {
 		patterns[clusterId] = strings.Join(cluster.template, " ")
 		for _, logId := range cluster.logIds {
-			clusterRecord[logId] = clusterId
+			clusterSize[logId] = clusterId
 		}
+		clusterSize[clusterId] = len(cluster.logIds)
 	}
-	model.parser.WriteResultToFile(headers, dataFrame, wordSeqs, patterns, clusterRecord, true)
+	model.parser.WriteResultToFile(headers, dataFrame, wordSeqs, patterns, clusterRecord, clusterSize, true)
 	// endTime := time.Now()
 	// fmt.Println("Parsing Done. Time taken: ", endTime.Sub(startTime))
 }

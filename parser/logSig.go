@@ -191,6 +191,10 @@ func (model *LogSig) Parse() {
 	wordSeqs := model.parser.GetLogContent(dataFrame)
 	wordPairs := WordSeqToPairs(wordSeqs)
 	clusterRecord, clusters := model.LogCluster(wordPairs)
+	clusterSize := map[int]int{}
+	for clusterId, cluster := range clusters {
+		clusterSize[clusterId] = len(cluster)
+	}
 	patterns := model.PatternExtract(clusterRecord, wordSeqs, clusters)
-	model.parser.WriteResultToFile(headers, dataFrame, wordSeqs, patterns, clusterRecord, false)
+	model.parser.WriteResultToFile(headers, dataFrame, wordSeqs, patterns, clusterRecord, clusterSize, false)
 }
