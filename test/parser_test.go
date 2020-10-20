@@ -1,4 +1,4 @@
-package bench
+package parser_test
 
 import (
 	"github.com/VertexC/logparser-go/parser"

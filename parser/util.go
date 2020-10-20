@@ -11,6 +11,11 @@ import (
 	"strings"
 )
 
+type DataFrame struct {
+	records map[string][]string
+	headers []string // use headers to track the order of data frame
+}
+
 func GenerateLogFormat(format string) ([]string, string) {
 	var headers []string
 	var regex string
@@ -120,8 +125,7 @@ func ExportCsvFile(outputDir string, fileName string, records [][]string) error 
 	return nil
 }
 
-// https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
-func ReadCsvFile(filePath string) [][]string {
+func ReadCsvFile(filePath string) *DataFrame {
 	f, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal("Unable to read input file "+filePath, err)
@@ -129,9 +133,28 @@ func ReadCsvFile(filePath string) [][]string {
 	defer f.Close()
 
 	csvReader := csv.NewReader(f)
-	records, err := csvReader.ReadAll()
+	rows, err := csvReader.ReadAll()
 	if err != nil {
 		log.Fatal("Unable to parse file as CSV for"+filePath, err)
 	}
-	return records
+
+	df := new(DataFrame)
+	df.records = map[string][]string{}
+	for rowId, row := range rows {
+		if rowId == 0 {
+			for _, header := range row {
+				df.headers = append(df.headers, header)
+			}
+		} else {
+			for i, token := range row {
+				header := df.headers[i]
+				if _, ok := df.records[header]; ok {
+					df.records[header] = append(df.records[header], token)
+				} else {
+					df.records[header] = []string{token}
+				}
+			}
+		}
+	}
+	return df
 }
