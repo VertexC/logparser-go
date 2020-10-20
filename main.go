@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"github.com/VertexC/logparser-go/parser"
+	"github.com/VertexC/logparser-go/benchmark"
 )
 
 func main() {
-	var logSig parser.LogSig
-	fmt.Println(logSig)
+	benchmark.LogSigBenchmark()
 }
