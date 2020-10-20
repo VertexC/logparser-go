@@ -50,10 +50,10 @@ func (parser *Parser) LoadLog() ([]string, map[string][]string) {
 
 func ExtractParams(content string, pattern string) []string {
 	// deal with invalid regex symbol
-	regex := regexp.MustCompile(`([^A-Za-z0-9])`).ReplaceAllString(pattern, `\\$1`)
+	regex := regexp.MustCompile(`([^A-Za-z0-9])`).ReplaceAllString(pattern, `\$1`)
 	// deal with white spaces
-	regex = regexp.MustCompile(`\\ +`).ReplaceAllString(regex, `\s+`)
-	regex = regexp.MustCompile(`\<\*\>`).ReplaceAllString(pattern, `(.*)?`)
+	regex = regexp.MustCompile(`\ +`).ReplaceAllString(regex, `\s+`)
+	regex = regexp.MustCompile(`\<\*\>`).ReplaceAllString(regex, `(.*)?`)
 	// fmt.Println(regex)
 	re := regexp.MustCompile(`^` + regex + `$`)
 	params := re.FindStringSubmatch(content)
