@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"fmt"
+	// "fmt"
 	"github.com/gonum/stat/combin"
 )
 
@@ -12,13 +12,13 @@ type Metric struct {
 	accuracy  float32
 }
 
-func Evaluate(gtFilePath string, resultFilePath string) {
+func Evaluate(gtFilePath string, resultFilePath string) *Metric {
 	gtDataFrame := ReadCsvFile(gtFilePath) // groud truth data frame
 	resultDataFrame := ReadCsvFile(resultFilePath)
 	eventGt := gtDataFrame.records["EventId"]
 	eventResult := resultDataFrame.records["EventId"]
 	metric := getMetric(eventGt, eventResult)
-	fmt.Println(metric)
+	return metric
 }
 
 func GroupArrayIndexByValue(array []string) map[string][]int {
@@ -43,7 +43,7 @@ func combCounts(cluster map[string][]int) int {
 	return counts
 }
 
-func getMetric(eventGt []string, eventResult []string) Metric {
+func getMetric(eventGt []string, eventResult []string) *Metric {
 	// group by eventId
 	gtClusters := GroupArrayIndexByValue(eventGt)
 	resClusters := GroupArrayIndexByValue(eventResult)
@@ -80,5 +80,5 @@ func getMetric(eventGt []string, eventResult []string) Metric {
 
 	fMeasure := 2 * precision * recall / (precision + recall)
 	accuracy := float32(accurateEvents) / float32(len(eventGt))
-	return Metric{precision, recall, fMeasure, accuracy}
+	return &Metric{precision, recall, fMeasure, accuracy}
 }

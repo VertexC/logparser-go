@@ -12,14 +12,15 @@ All datasets under `logs` are from [logpari/logparser](https://github.com/logpai
 ### Benchmark
 ```bash
 ~/b/p/logparser-go (master)> go run main.go
+
 Start to Run LogSig on:  HDFS
-{0.8874827 0.9889668 0.9354805 0.375}
-Time duration:  1.21992258s
+metric: {precision:0.8888562 recall:0.9975381 fMeasure:0.9400664 accuracy:0.5825}
+Time duration:  1.425726157s
+
 Start to Run LogSig on:  Hadoop
-{0.9996366 0.90963674 0.9525154 0.4665}
-Time duration:  3.183971931s
+metric: {precision:0.9995276 recal
 ```
-### Unit Test`
+### Test
 The folder `test` consists of demos which run HDFS data set and produce corresponding templates and structed result under `test` folder.
 
 ```bash

@@ -33,15 +33,16 @@ func LogSigBenchmark() {
 	}
 
 	for dataSetName, setting := range benchmarkSettings {
-		fmt.Println("Start to Run LogSig on: ", dataSetName)
+		fmt.Println("\nStart to Run LogSig on: ", dataSetName)
 		startTime := time.Now()
 
 		var model parser.LogSig
 		model.Init(setting.inputDir, outputDir, setting.logFile, setting.logFormat,
 			setting.regexList, setting.groupNum)
 		model.Parse()
-		parser.Evaluate(path.Join(outputDir, setting.logFile+"_structured.csv"),
+		metric := parser.Evaluate(path.Join(outputDir, setting.logFile+"_structured.csv"),
 			path.Join(setting.inputDir, setting.logFile+"_structured.csv"))
+		fmt.Printf("metric: %+v\n", *metric)
 		endTime := time.Now()
 		fmt.Println("Time duration: ", endTime.Sub(startTime))
 	}
